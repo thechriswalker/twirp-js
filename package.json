@@ -1,0 +1,21 @@
+{
+  "name": "twirp-client",
+  "version": "0.0.1",
+  "description": "TWIRP RPC client for use with protoc-gen-twirp_js",
+  "peerDependencies": {
+    "node-fetch": "^2.0.0-alpha.9"
+  },
+  "optionalDependencies": {
+    "whatwg-fetch": "^2.0.3"
+  },
+  "main": "./dist/client-node.js",
+  "browser": "./dist/client-browser.js",
+  "repository": "https://github.com/thechriswalker/twirp-js",
+  "author": "Chris Walker",
+  "license": "MIT",
+  "private": false,
+  "scripts": {
+    "build": "babel src --out-dir dist",
+    "prepublish": "yarn run build"
+  }
+}
