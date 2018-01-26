@@ -1,74 +1,92 @@
 /**
  * TWIRP RPC Client for javascript
+ *
+ * Written in ugly es5 for compatibility...
  */
-const { resToError } = require("./util");
+var makeHeaders = function (extras, mime, version) {
+    var obj = Object.keys(extras).reduce(function (o, k) {
+        o[k] = extras[k];
+        return o;
+    }, {});
+    obj["Content-Type"] = mime;
+    obj["Accept"] = mime;
+    obj["Twirp-Version"] = version;
+    return obj;
+};
 
-const clientFactory = (fetchFn, serializer, deserialize) => (baseurl, serviceName, twirpVersion, useJSON, extraHeaders) => {
-    const endpoint = baseurl.replace(/\/$/, "") + "/twirp/" + serviceName + "/";
-    const mimeType = useJSON ? "application/json" : "application/protobuf";
-    const serialize = useJSON
-        ? msg => JSON.stringify(msg.toObject())
-        : msg => serializer;
-    const headers = Object.assign({}, extraHeaders || {}, {
-        "Content-Type": mimeType,
-        "Accept": mimeType,
-        "Twirp-Version": twirpVersion
-    });
-    const rpc = (method, requestMsg, responseType) => {
-        const deserialize = useJSON
-            ? res => res.json()
-            : deserialize(responseType);
-        const opts = {
-            method: "POST",
-            body: serialize(requestMsg),
-            redirect: "manual",
-            headers
+var jsonSerialize = function (msg) {
+    return JSON.stringify(msg.toObject());
+};
+var jsonDeserialize = function (res) {
+    return res.json();
+};
+
+var clientFactory = function (fetchFn, serializer, deserializer) {
+    return function (baseurl, serviceName, twirpVersion, useJSON, extraHeaders) {
+        var endpoint = baseurl.replace(/\/$/, "") + "/twirp/" + serviceName + "/";
+        var mimeType = useJSON ? "application/json" : "application/protobuf";
+        var serialize = useJSON ? jsonSerialize : serializer;
+        var headers = makeHeaders(extraHeaders, mimeType, twirpVersion);
+        var rpc = function (method, requestMsg, responseType) {
+            var deserialize = useJSON
+                ? jsonDeserialize
+                : deserializer(responseType);
+            var opts = {
+                method: "POST",
+                body: serialize(requestMsg),
+                redirect: "manual",
+                headers
+            };
+            return fetchFn(endpoint + method, opts).then(function (res) {
+                // 200 is the only valid response
+                if (res.status !== 200) {
+                    return resToError(res);
+                }
+                return deserialize(res);
+            });
         };
-        return fetchFn(endpoint + method, opts).then(res => {
-            // 200 is the only valid response
-            if (res.status !== 200) {
-                return resToError(res);
-            }
-            return deserialize(res);
-        });
+        rpc.buildMessage = buildMessage;
+        return rpc;
     };
-    rpc.buildMessage = buildMessage;
-    return rpc;
 };
 
 module.exports = clientFactory;
 
-const twirpError = ({ code, msg, meta = {} } = {}) => Object.assign(
-    new Error(msg),
-    { meta, code }
-);
+function twirpError(obj) {
+    var err = new Error(obj.msg);
+    err.meta = meta === undefined ? {} : meta;
+    err.code = code;
+}
 
 // Twirp Error implementation
 function resToError(res) {
-    const intermediateError = meta => twirpError({
-        code: "internal",
-        msg: "Error from intermediary with HTTP status code " +
-            res.status + " " + res.statusText,
-        meta: meta
-    });
     return res.json()
-        .then(obj => {
+        .then(function (obj) {
             if (!obj.code || !obj.msg) {
                 throw intermediateError(obj);
             }
             throw twirpError(obj);
         },
-        _ => { // error decoding JSON error
+        function () { // error decoding JSON error
             throw intermediateError({});
         });
+
+    function intermediateError(meta) {
+        return twirpError({
+            code: "internal",
+            msg: "Error from intermediary with HTTP status code " +
+                res.status + " " + res.statusText,
+            meta: meta
+        });
+    }
 }
 
 // builds a message from an object, set fields if they exist
 // in the protobuf message.
 function buildMessage(protobufClass, data) {
-    const msg = new protobufClass();
-    Object.keys(data).forEach(key => {
-        const setter = "set" + key[0].toUpperCase() + key.slice(1);
+    var msg = new protobufClass();
+    Object.keys(data).forEach(function (key) {
+        var setter = "set" + key[0].toUpperCase() + key.slice(1);
         if (setter in msg) {
             msg[setter](data[key]);
         }

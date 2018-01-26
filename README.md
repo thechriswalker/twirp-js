@@ -1,4 +1,4 @@
-# twirp-client
+# twirp rpc client for javascript.
 
 This is a companion package to the twirp rpc system. It can generate
 javascript bindings, but this package is required for handling the differences

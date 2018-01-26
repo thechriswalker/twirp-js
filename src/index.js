@@ -8,8 +8,12 @@ if ("fetch" in window === false || typeof fetch !== "function") {
         "\nPlease install a polyfill such as `whatwg-fetch` (https://github.com/github/fetch)");
 }
 
-const serialize = msg => msg.serializeBinary();
-const deserialize = responseType => res => res.arrayBuffer()
-    .then(buf => responseType.deserializeBinary(new Uint8Array(buf)).toObject());
-
+const serialize = function (msg) { return msg.serializeBinary(); };
+const deserialize = function (responseType) {
+    return function (res) {
+        return res.arrayBuffer().then(function (buf) {
+            return responseType.deserializeBinary(new Uint8Array(buf)).toObject();
+        });
+    };
+};
 module.exports = clientFactory(window.fetch, serialize, deserialize);
