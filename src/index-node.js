@@ -8,12 +8,12 @@ var clientFactory = require("./client");
 // if installed it must be >= 2.0.0 which has the .buffer function.
 var fetch = require("node-fetch");
 
-if (typeof "buffer" in fetch.Response.prototype === false) {
+if ("buffer" in fetch.Response.prototype === false) {
     throw new TypeError("node-fetch must be version >= 2.0.0");
 }
 
 const serialize = msg => Buffer.from(msg.serializeBinary());
 const deserialize = responseType => res => res.buffer()
-    .then(b => responseType.deserializeBinary(new Uint8Array(b))).toObject();
+    .then(b => responseType.deserializeBinary(new Uint8Array(b)).toObject());
 
-module.exports = clientFactory(window.fetch, serialize, deserialize);
+module.exports = clientFactory(fetch, serialize, deserialize);

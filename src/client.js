@@ -54,8 +54,9 @@ module.exports = clientFactory;
 
 function twirpError(obj) {
     var err = new Error(obj.msg);
-    err.meta = meta === undefined ? {} : meta;
-    err.code = code;
+    err.meta = obj.meta === undefined ? {} : obj.meta;
+    err.code = obj.code;
+    return err;
 }
 
 // Twirp Error implementation
