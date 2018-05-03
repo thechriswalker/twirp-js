@@ -1,7 +1,7 @@
 /**
  * TWIRP RPC Client for Node JS
  */
-var clientFactory = require("./client");
+var client = require("./client");
 
 // this dependency is a peer-dependency, it must be installed
 // but is not necessary for the browser version, so not a hard dependency
@@ -16,4 +16,4 @@ const serialize = msg => Buffer.from(msg.serializeBinary());
 const deserialize = responseType => res => res.buffer()
     .then(b => responseType.deserializeBinary(new Uint8Array(b)).toObject());
 
-module.exports = clientFactory(fetch, serialize, deserialize);
+module.exports = client.clientFactory(fetch, serialize, deserialize);

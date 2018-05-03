@@ -11,7 +11,8 @@ const createTwirpClient = require("twirp-client");
 
 const rpc = createTwirpClient(baseurl, serviceName, twirpVersion, useJSON, extraHeaders);
 
-// the function returned has the signature:
-const resultPromise = rpc(methodName, inputProtobugMessageObject, outputProtobufMessageClass);
+// The function returned has the signature below. "customHeaders" is optional, and if defined, will
+// merge any custom headers into "extraHeaders" defined in the rpc client.
+const resultPromise = rpc(methodName, inputProtobugMessageObject, outputProtobufMessageClass, customHeaders);
 ```
 
