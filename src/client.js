@@ -36,9 +36,9 @@ var clientFactory = function (fetchFn, serializer, deserializer) {
         var headers = makeHeaders(extraHeaders, mimeType, twirpVersion);
         var rpc = function (method, requestMsg, responseType, customHeaders) {
             var headersWithCustom = extendHeaders(customHeaders, headers);
-            var deserialize = useJSON
-                ? jsonDeserialize
-                : deserializer(responseType);
+            var deserialize = useJSON ?
+                jsonDeserialize :
+                deserializer(responseType);
             var opts = {
                 method: "POST",
                 body: serialize(requestMsg),
@@ -60,7 +60,7 @@ var clientFactory = function (fetchFn, serializer, deserializer) {
 
 module.exports = {
     clientFactory: clientFactory,
-    makeHeaders: makeHeaders,  // export for testing purposes
+    makeHeaders: makeHeaders, // export for testing purposes
     extendHeaders: extendHeaders // export for testing purposes
 };
 
@@ -68,6 +68,7 @@ function twirpError(obj) {
     var err = new Error(obj.msg);
     err.meta = obj.meta === undefined ? {} : obj.meta;
     err.code = obj.code;
+    err.status = obj.status;
     return err;
 }
 
@@ -75,21 +76,22 @@ function twirpError(obj) {
 function resToError(res) {
     return res.json()
         .then(function (obj) {
-            if (!obj.code || !obj.msg) {
-                throw intermediateError(obj);
-            }
-            throw twirpError(obj);
-        },
-        function () { // error decoding JSON error
-            throw intermediateError({});
-        });
+                if (!obj.code || !obj.msg) {
+                    throw intermediateError(obj);
+                }
+                throw twirpError(obj);
+            },
+            function () { // error decoding JSON error
+                throw intermediateError({});
+            });
 
     function intermediateError(meta) {
         return twirpError({
             code: "internal",
             msg: "Error from intermediary with HTTP status code " +
                 res.status + " " + res.statusText,
-            meta: meta
+            meta: meta,
+            status: res.status
         });
     }
 }
