@@ -3,16 +3,23 @@
  *
  * Written in ugly es5 for compatibility...
  */
-var makeHeaders = function (extras, mime, version) {
-    var obj = Object.keys(extras).reduce(function (o, k) {
-        o[k] = extras[k];
-        return o;
-    }, {});
+function makeHeaders(extras, mime, version, headers) {
+    var obj = extendHeaders(extras, headers);
     obj["Content-Type"] = mime;
     obj["Accept"] = mime;
     obj["Twirp-Version"] = version;
     return obj;
 };
+
+function extendHeaders(extras, headers) {
+    var extendFrom = headers !== undefined ? headers : {};
+    extras = extras !== undefined ? extras : {};
+    var obj = Object.keys(extras).reduce(function (o, k) {
+        o[k] = extras[k];
+        return o;
+    }, extendFrom);
+    return obj;
+}
 
 var jsonSerialize = function (msg) {
     return JSON.stringify(msg.toObject());
@@ -27,15 +34,16 @@ var clientFactory = function (fetchFn, serializer, deserializer) {
         var mimeType = useJSON ? "application/json" : "application/protobuf";
         var serialize = useJSON ? jsonSerialize : serializer;
         var headers = makeHeaders(extraHeaders, mimeType, twirpVersion);
-        var rpc = function (method, requestMsg, responseType) {
-            var deserialize = useJSON
-                ? jsonDeserialize
-                : deserializer(responseType);
+        var rpc = function (method, requestMsg, responseType, customHeaders) {
+            var headersWithCustom = extendHeaders(customHeaders, headers);
+            var deserialize = useJSON ?
+                jsonDeserialize :
+                deserializer(responseType);
             var opts = {
                 method: "POST",
                 body: serialize(requestMsg),
                 redirect: "manual",
-                headers
+                headers: headersWithCustom
             };
             return fetchFn(endpoint + method, opts).then(function (res) {
                 // 200 is the only valid response
@@ -50,12 +58,17 @@ var clientFactory = function (fetchFn, serializer, deserializer) {
     };
 };
 
-module.exports = clientFactory;
+module.exports = {
+    clientFactory: clientFactory,
+    makeHeaders: makeHeaders, // export for testing purposes
+    extendHeaders: extendHeaders // export for testing purposes
+};
 
 function twirpError(obj) {
     var err = new Error(obj.msg);
     err.meta = obj.meta === undefined ? {} : obj.meta;
     err.code = obj.code;
+    err.status = obj.status;
     return err;
 }
 
@@ -63,21 +76,22 @@ function twirpError(obj) {
 function resToError(res) {
     return res.json()
         .then(function (obj) {
-            if (!obj.code || !obj.msg) {
-                throw intermediateError(obj);
-            }
-            throw twirpError(obj);
-        },
-        function () { // error decoding JSON error
-            throw intermediateError({});
-        });
+                if (!obj.code || !obj.msg) {
+                    throw intermediateError(obj);
+                }
+                throw twirpError(obj);
+            },
+            function () { // error decoding JSON error
+                throw intermediateError({});
+            });
 
     function intermediateError(meta) {
         return twirpError({
             code: "internal",
             msg: "Error from intermediary with HTTP status code " +
                 res.status + " " + res.statusText,
-            meta: meta
+            meta: meta,
+            status: res.status
         });
     }
 }

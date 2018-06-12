@@ -1,7 +1,7 @@
 /**
  * TWIRP RPC Client for the Browser
  */
-const clientFactory = require("./client");
+const client = require("./client");
 
 if ("fetch" in window === false || typeof fetch !== "function") {
     console.warn("TWIRP RPC Client requires `window.fetch` and this browser doesn't support it" +
@@ -16,4 +16,4 @@ const deserialize = function (responseType) {
         });
     };
 };
-module.exports = clientFactory(window.fetch, serialize, deserialize);
+module.exports = client.clientFactory(window.fetch, serialize, deserialize);
