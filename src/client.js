@@ -30,7 +30,7 @@ var jsonDeserialize = function (res) {
 
 var clientFactory = function (fetchFn, serializer, deserializer) {
     return function (baseurl, serviceName, twirpVersion, useJSON, extraHeaders) {
-        var endpoint = baseurl.replace(/\/$/, "") + "/twirp/" + serviceName + "/";
+        var endpoint = baseurl.replace(/\/$/, "") + serviceName + "/";
         var mimeType = useJSON ? "application/json" : "application/protobuf";
         var serialize = useJSON ? jsonSerialize : serializer;
         var headers = makeHeaders(extraHeaders, mimeType, twirpVersion);
