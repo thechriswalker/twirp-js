@@ -8,7 +8,7 @@
   "optionalDependencies": {
     "whatwg-fetch": "^2.0.3"
   },
-  "main": "./src/index-node.js",
+  "main": "./src/index.js",
   "browser": "./dist/main.js",
   "repository": "https://github.com/thechriswalker/twirp-js",
   "author": "Chris Walker",
