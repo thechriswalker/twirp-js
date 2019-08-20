@@ -12,7 +12,7 @@ const serialize = function (msg) { return msg.serializeBinary(); };
 const deserialize = function (responseType) {
     return function (res) {
         return res.arrayBuffer().then(function (buf) {
-            return responseType.deserializeBinary(new Uint8Array(buf)).toObject();
+            return responseType.deserializeBinary(new Uint8Array(buf));
         });
     };
 };
